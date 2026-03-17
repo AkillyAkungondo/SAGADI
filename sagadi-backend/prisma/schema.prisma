@@ -1,0 +1,326 @@
+generator client {
+  provider   = "prisma-client-js"
+  engineType = "binary"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+// ==================== TABELAS ESTRUTURAIS ====================
+
+model perfil {
+  id             Int           @id @default(autoincrement())
+  nome           String        @unique // admin_nacional, inspetor, operador, auditor
+  descricao      String?
+  nivel_acesso   Int           @default(1) // 1-básico, 2-intermédio, 3-alto, 4-admin
+  utilizadores   utilizador[]
+  permissoes     permissoes_perfil[]
+  created_at     DateTime      @default(now())
+  updated_at     DateTime      @updatedAt
+
+  @@map("perfis")
+}
+
+model utilizador {
+  id             Int           @id @default(autoincrement())
+  nome_completo  String
+  email          String        @unique
+  senha_hash     String
+  perfil_id      Int
+  direcao_id     Int?
+  cargo          String?
+  telefone       String?
+  assinatura_digital String?   // Caminho para imagem da assinatura
+  ativo          Boolean       @default(true)
+  ultimo_acesso  DateTime?
+  token_reset_senha String?    // Para recuperação de senha
+  token_reset_expira DateTime?
+  
+  // Relacionamentos
+  perfil         perfil        @relation(fields: [perfil_id], references: [id])
+  direcao        direcao?      @relation(fields: [direcao_id], references: [id])
+  
+  // Findings (como inspetor)
+  findings_criados    finding[] @relation("inspetor")
+  findings_assinados  finding[] @relation("inspector_assinatura")
+  
+  // Findings como operador_resposta
+  findings_operador_resposta finding[] @relation("operador_resposta")
+  
+  // Planos de ação como responsável
+  planos_acao_responsavel plano_acao_responsavel[]
+  
+  // Notificações enviadas
+  notificacoes_envios notificacao[] @relation("remetente")
+  
+  // Logs
+  logs_auditoria   auditoria_log[]
+  anexos_upload    anexo[] @relation("uploader")
+  
+  // Histórico de edições
+  historico_edicoes finding_historico[] @relation("editor")
+  
+  created_at     DateTime      @default(now())
+  updated_at     DateTime      @updatedAt
+
+  @@map("utilizadores")
+}
+
+model direcao {
+  id             Int           @id @default(autoincrement())
+  nome           String
+  sigla          String        @unique
+  descricao      String?
+  utilizadores   utilizador[]
+  aerodromos     aerodromo[]
+  created_at     DateTime      @default(now())
+  updated_at     DateTime      @updatedAt
+
+  @@map("direcoes")
+}
+
+model aerodromo {
+  id             Int           @id @default(autoincrement())
+  codigo_oaci    String        @unique // Ex: FQMA, FQMP, FQTT
+  nome           String
+  cidade         String
+  provincia      String
+  categoria      String        // Internacional, Doméstico, Aeródromo
+  direcao_id     Int
+  ativo          Boolean       @default(true)
+  
+  // Relacionamentos
+  direcao        direcao       @relation(fields: [direcao_id], references: [id])
+  findings       finding[]
+  
+  created_at     DateTime      @default(now())
+  updated_at     DateTime      @updatedAt
+
+  @@map("aerodromos")
+}
+
+model area_inspecao {
+  id             Int           @id @default(autoincrement())
+  codigo         String        @unique // AGA, PANS, MET, SAR, CNS
+  nome           String
+  descricao      String?
+  ativo          Boolean       @default(true)
+  findings       finding[]
+  created_at     DateTime      @default(now())
+  updated_at     DateTime      @updatedAt
+
+  @@map("areas_inspecao")
+}
+
+// ==================== TABELAS DE GESTÃO DE FINDINGS ====================
+
+model finding {
+  id                    Int           @id @default(autoincrement())
+  
+  // === PARTE 1 - INSPETOR IACM ===
+  numero_processo       String        @unique // Formato: AREA-AERODROMO-SEQ-ANO (AGA-FQMA-001-2026)
+  aerodromo_id          Int
+  area_inspecao_id      Int
+  inspetor_id           Int
+  data_inspecao         DateTime
+  finding_level         Int           // 1, 2, 3 (nível de criticidade)
+  reference_document    String        @db.Text
+  finding_descricao     String        @db.Text
+  parte_1_concluida_em  DateTime?
+  
+  // === PARTE 2 - OPERADOR AERÓDROMO ===
+  observacoes_operador  String?       @db.Text
+  root_causes           String?       @db.Text
+  acoes_corretivas      Json?         // Array de objetos com: 
+                                      // { acao, office_action, evidence_ref, start_date, due_date, progress }
+  parte_2_concluida_em  DateTime?
+  operador_resposta_id  Int?          // Quem preencheu a Parte 2
+  
+  // === PARTE 3 - IACM FOLLOW-UP ===
+  comments_cap          String?       @db.Text
+  progress_documented   Json?         // Array de objetos com: { descricao, review_date }
+  evaluation_actions    String?       @db.Text
+  data_aplicacao_acoes  DateTime?
+  resolved_satisfactorily Boolean?    
+  inspector_assinatura_id Int?        // Inspetor que assinou o encerramento
+  data_assinatura       DateTime?
+  parte_3_concluida_em  DateTime?
+  
+  // === CONTROLE DO SISTEMA ===
+  status                String        @default("rascunho") 
+                                      // rascunho, parte1_concluida, aguarda_parte2, 
+                                      // parte2_concluida, aguarda_avaliacao, em_correcao, encerrado
+  prioridade            String        @default("media") // baixa, media, alta, critica
+  prazo_resposta_dias   Int           @default(15) // Prazo para operador responder
+  data_vencimento       DateTime?     // Data limite para resposta
+  data_encerramento     DateTime?
+  
+  // Relacionamentos
+  aerodromo             aerodromo     @relation(fields: [aerodromo_id], references: [id])
+  area_inspecao         area_inspecao @relation(fields: [area_inspecao_id], references: [id])
+  inspetor              utilizador    @relation("inspetor", fields: [inspetor_id], references: [id])
+  operador_resposta     utilizador?   @relation("operador_resposta", fields: [operador_resposta_id], references: [id])
+  inspector_assinatura  utilizador?   @relation("inspector_assinatura", fields: [inspector_assinatura_id], references: [id])
+  
+  // Histórico e anexos
+  plano_acoes           plano_acao[]
+  notificacoes          notificacao[]
+  anexos                anexo[]       @relation("finding_anexos")
+  historico_edicoes     finding_historico[]
+  
+  created_at            DateTime      @default(now())
+  updated_at            DateTime      @updatedAt
+
+  @@map("findings")
+}
+
+model plano_acao {
+  id             Int           @id @default(autoincrement())
+  finding_id     Int
+  descricao      String        @db.Text
+  office_action  String?
+  evidence_ref   String?
+  data_inicio    DateTime?
+  data_vencimento DateTime?
+  progresso      Int           @default(0) // 0-100%
+  status         String        @default("pendente") // pendente, em_andamento, concluido, atrasado
+  
+  // Relacionamentos
+  finding        finding       @relation(fields: [finding_id], references: [id])
+  responsaveis   plano_acao_responsavel[]
+  anexos         anexo[]       @relation("plano_acao_anexos")
+  
+  created_at     DateTime      @default(now())
+  updated_at     DateTime      @updatedAt
+
+  @@map("planos_acao")
+}
+
+model plano_acao_responsavel {
+  id             Int           @id @default(autoincrement())
+  plano_acao_id  Int
+  utilizador_id  Int
+  
+  // Relacionamentos
+  plano_acao     plano_acao    @relation(fields: [plano_acao_id], references: [id])
+  utilizador     utilizador    @relation(fields: [utilizador_id], references: [id])
+  
+  created_at     DateTime      @default(now())
+
+  @@unique([plano_acao_id, utilizador_id])
+  @@map("planos_acao_responsaveis")
+}
+
+model anexo {
+  id             Int           @id @default(autoincrement())
+  nome_original  String
+  nome_arquivo   String        // Nome único gerado pelo sistema
+  caminho        String
+  tipo           String        // MIME type
+  tamanho        Int           // Tamanho em bytes
+  uploaded_by    Int
+  
+  // Campos específicos para cada tipo (apenas um deles será preenchido)
+  finding_id     Int?
+  plano_acao_id  Int?
+  
+  // Relacionamentos
+  uploaded_por   utilizador    @relation("uploader", fields: [uploaded_by], references: [id])
+  finding        finding?      @relation("finding_anexos", fields: [finding_id], references: [id])
+  plano_acao     plano_acao?   @relation("plano_acao_anexos", fields: [plano_acao_id], references: [id])
+  
+  created_at     DateTime      @default(now())
+
+  @@map("anexos")
+}
+
+model notificacao {
+  id             Int           @id @default(autoincrement())
+  finding_id     Int
+  tipo           String        // "prazo", "resposta", "aprovacao", "correcao", "lembrete"
+  destinatarios  Json          // Array de emails ou IDs
+  assunto        String
+  mensagem       String        @db.Text
+  enviado_por    Int
+  status         String        @default("pendente") // pendente, enviado, falhou
+  data_envio     DateTime?
+  erro           String?
+  
+  // Relacionamentos
+  remetente      utilizador    @relation("remetente", fields: [enviado_por], references: [id])
+  finding        finding       @relation(fields: [finding_id], references: [id])
+  
+  created_at     DateTime      @default(now())
+
+  @@map("notificacoes")
+}
+
+model auditoria_log {
+  id             Int           @id @default(autoincrement())
+  utilizador_id  Int?
+  acao           String        // CREATE, UPDATE, DELETE, LOGIN, LOGOUT, VIEW, DOWNLOAD
+  entidade       String        // "finding", "utilizador", "plano_acao", etc
+  entidade_id    Int?
+  dados_antes    Json?
+  dados_depois   Json?
+  ip_address     String?
+  user_agent     String?
+  
+  // Relacionamentos
+  utilizador     utilizador?   @relation(fields: [utilizador_id], references: [id])
+  
+  created_at     DateTime      @default(now())
+
+  @@map("auditoria_logs")
+}
+
+model finding_historico {
+  id             Int           @id @default(autoincrement())
+  finding_id     Int
+  parte          String        // "parte1", "parte2", "parte3"
+  acao           String        // "submissao", "edicao", "bloqueio"
+  dados_antes    Json?
+  dados_depois   Json?
+  editado_por_id Int
+  
+  // Relacionamentos
+  finding        finding       @relation(fields: [finding_id], references: [id])
+  editado_por    utilizador    @relation("editor", fields: [editado_por_id], references: [id])
+  
+  created_at     DateTime      @default(now())
+
+  @@map("findings_historico")
+}
+
+// ==================== TABELAS DE PERMISSÕES ====================
+
+model permissao {
+  id             Int           @id @default(autoincrement())
+  codigo         String        @unique // "criar_finding", "avaliar_parte2", "gerir_utilizadores"
+  nome           String
+  descricao      String?
+  modulo         String        // "findings", "utilizadores", "relatorios", "admin"
+  
+  perfis         permissoes_perfil[]
+  
+  created_at     DateTime      @default(now())
+  updated_at     DateTime      @updatedAt
+
+  @@map("permissoes")
+}
+
+model permissoes_perfil {
+  id             Int           @id @default(autoincrement())
+  perfil_id      Int
+  permissao_id   Int
+  
+  perfil         perfil        @relation(fields: [perfil_id], references: [id])
+  permissao      permissao     @relation(fields: [permissao_id], references: [id])
+  
+  created_at     DateTime      @default(now())
+
+  @@unique([perfil_id, permissao_id])
+  @@map("permissoes_perfil")
+}

@@ -1,0 +1,38 @@
+.toast-success {
+  background: #4caf50 !important;
+  color: white !important;
+}
+
+.toast-error {
+  background: #f44336 !important;
+  color: white !important;
+}
+
+.toast-warning {
+  background: #ff9800 !important;
+  color: white !important;
+}
+
+.toast-info {
+  background: #2196f3 !important;
+  color: white !important;
+}
+
+/* Tema escuro */
+@media (prefers-color-scheme: dark) {
+  .toast-success {
+    background: #2e7d32 !important;
+  }
+  
+  .toast-error {
+    background: #c62828 !important;
+  }
+  
+  .toast-warning {
+    background: #f57c00 !important;
+  }
+  
+  .toast-info {
+    background: #1565c0 !important;
+  }
+}

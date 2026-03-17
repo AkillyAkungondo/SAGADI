@@ -1,0 +1,34 @@
+# Dependências
+node_modules/
+/node_modules
+
+# Ambiente
+.env
+.env.local
+.env.production
+
+# Banco de dados
+prisma/*.db
+prisma/*.db-journal
+
+# Uploads
+uploads/*
+!uploads/.gitkeep
+
+# Logs
+logs/*
+!logs/.gitkeep
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Sistema
+.DS_Store
+dist
+build
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
