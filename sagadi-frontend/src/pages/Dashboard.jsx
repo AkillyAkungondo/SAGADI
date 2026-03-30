@@ -6,12 +6,6 @@ import { AreasInspecaoService } from '../services/areasInspecao';
 import pdfService from '../services/pdfService';
 import { notify } from '../components/Common/Notification';
 import {
-  Download as DownloadIcon,
-  Refresh as RefreshIcon,
-  PictureAsPdf as PdfIcon,
-  TableChart as TableChartIcon
-} from '@mui/icons-material';
-import {
   Grid,
   Paper,
   Typography,
@@ -25,8 +19,7 @@ import {
   InputLabel,
   Select,
   MenuItem,
-  IconButton,
-  Tooltip,
+  Button,
   Table,
   TableBody,
   TableCell,
@@ -157,67 +150,82 @@ export const Dashboard = () => {
 
   const exportarParaCSV = () => {
     setExportando(true);
-    const dadosExport = todosFindings.map(f => ({
-      'Nº Processo': f.numero_processo,
-      'Aeródromo': f.aerodromo?.codigo_oaci,
-      'Área': f.area_inspecao?.codigo,
-      'Status': f.status,
-      'Prioridade': f.prioridade,
-      'Data Inspeção': new Date(f.data_inspecao).toLocaleDateString(),
-      'Inspetor': f.inspetor?.nome_completo,
-      'Data Vencimento': f.data_vencimento ? new Date(f.data_vencimento).toLocaleDateString() : ''
-    }));
-    
-    const csv = dadosExport.map(row => Object.values(row).join(';')).join('\n');
-    const blob = new Blob(["\uFEFF" + csv], { type: 'text/csv;charset=utf-8;' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `findings_${new Date().toISOString().split('T')[0]}.csv`;
-    a.click();
-    window.URL.revokeObjectURL(url);
-    setExportando(false);
-    notify.success('Ficheiro CSV exportado com sucesso!');
+    try {
+      const dadosExport = todosFindings.map(f => ({
+        'Nº Processo': f.numero_processo,
+        'Aeródromo': f.aerodromo?.codigo_oaci,
+        'Área': f.area_inspecao?.codigo,
+        'Status': f.status,
+        'Prioridade': f.prioridade,
+        'Data Inspeção': new Date(f.data_inspecao).toLocaleDateString(),
+        'Inspetor': f.inspetor?.nome_completo,
+        'Data Vencimento': f.data_vencimento ? new Date(f.data_vencimento).toLocaleDateString() : ''
+      }));
+      
+      const csv = dadosExport.map(row => Object.values(row).join(';')).join('\n');
+      const blob = new Blob(["\uFEFF" + csv], { type: 'text/csv;charset=utf-8;' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `findings_${new Date().toISOString().split('T')[0]}.csv`;
+      a.click();
+      window.URL.revokeObjectURL(url);
+      notify.success('Ficheiro CSV exportado com sucesso!');
+    } catch (error) {
+      console.error('Erro ao exportar CSV:', error);
+      notify.error('Erro ao exportar CSV.');
+    } finally {
+      setExportando(false);
+    }
   };
 
- const gerarRelatorioPDF = async () => {
-  try {
-    setExportando(true);
-    notify.info('Gerando relatório PDF...');
-    
-    const periodoTexto = {
-      '7dias': 'Últimos 7 dias',
-      '30dias': 'Últimos 30 dias',
-      '90dias': 'Últimos 90 dias',
-      'ano': 'Último ano'
-    }[filtros.periodo] || filtros.periodo;
-    
-    await pdfService.downloadRelatorioFindings(
-      todosFindings, 
-      'dashboard-relatorio', 
-      {
-        titulo: 'Relatório do Dashboard',
-        periodo: periodoTexto
+  const gerarRelatorioPDF = async () => {
+    try {
+      setExportando(true);
+      notify.info('Preparando relatório PDF...');
+      
+      if (!todosFindings || todosFindings.length === 0) {
+        notify.warning('Não há dados para gerar relatório.');
+        setExportando(false);
+        return;
       }
-    );
-    
-    notify.success('Relatório PDF gerado com sucesso!');
-  } catch (error) {
-    console.error('Erro ao gerar PDF:', error);
-    notify.error('Erro ao gerar relatório PDF. Verifique o console para mais detalhes.');
-  } finally {
-    setExportando(false);
-  }
-};
+
+      const periodoTexto = {
+        '7dias': 'Últimos 7 dias',
+        '30dias': 'Últimos 30 dias',
+        '90dias': 'Últimos 90 dias',
+        'ano': 'Último ano'
+      }[filtros.periodo] || filtros.periodo;
+      
+      await pdfService.downloadRelatorioFindings(
+        todosFindings, 
+        'dashboard-relatorio', 
+        {
+          titulo: 'Relatório do Dashboard',
+          periodo: periodoTexto
+        }
+      );
+      
+      notify.success('Relatório PDF gerado com sucesso!');
+    } catch (error) {
+      console.error('Erro detalhado ao gerar PDF:', error);
+      notify.error(`Erro ao gerar PDF: ${error.message || 'Erro desconhecido'}`);
+    } finally {
+      setExportando(false);
+    }
+  };
 
   const exportarParaExcel = async () => {
     try {
+      setExportando(true);
       notify.info('Preparando exportação para Excel...');
       await pdfService.exportarParaExcel(todosFindings);
       notify.success('Ficheiro Excel exportado com sucesso!');
     } catch (error) {
       console.error('Erro ao exportar Excel:', error);
       notify.error('Erro ao exportar para Excel.');
+    } finally {
+      setExportando(false);
     }
   };
 
@@ -260,29 +268,40 @@ export const Dashboard = () => {
         </Typography>
         
         <Box sx={{ display: 'flex', gap: 1 }}>
-          <Tooltip title="Exportar CSV">
-            <IconButton onClick={exportarParaCSV} color="primary" disabled={exportando}>
-              <DownloadIcon />
-            </IconButton>
-          </Tooltip>
+          <Button 
+            variant="outlined" 
+            size="small" 
+            onClick={exportarParaCSV} 
+            disabled={exportando}
+          >
+            CSV
+          </Button>
           
-          <Tooltip title="Relatório PDF">
-            <IconButton onClick={gerarRelatorioPDF} color="primary">
-              <PdfIcon />
-            </IconButton>
-          </Tooltip>
+          <Button 
+            variant="outlined" 
+            size="small" 
+            onClick={gerarRelatorioPDF} 
+            disabled={exportando}
+          >
+            PDF
+          </Button>
           
-          <Tooltip title="Exportar Excel">
-            <IconButton onClick={exportarParaExcel} color="primary">
-              <TableChartIcon />
-            </IconButton>
-          </Tooltip>
+          <Button 
+            variant="outlined" 
+            size="small" 
+            onClick={exportarParaExcel} 
+            disabled={exportando}
+          >
+            Excel
+          </Button>
 
-          <Tooltip title="Recarregar">
-            <IconButton onClick={carregarDados} color="primary">
-              <RefreshIcon />
-            </IconButton>
-          </Tooltip>
+          <Button 
+            variant="outlined" 
+            size="small" 
+            onClick={carregarDados}
+          >
+            Recarregar
+          </Button>
         </Box>
       </Box>
 
@@ -527,6 +546,144 @@ export const Dashboard = () => {
             </Paper>
           </Grid>
         </Grid>
+      )}
+
+      {tabValue === 1 && (
+        <Grid container spacing={3}>
+          <Grid item xs={12}>
+            <Paper sx={{ p: 2 }}>
+              <Typography variant="h6" gutterBottom align="center">
+                Evolução de Findings
+              </Typography>
+              <ResponsiveContainer width="100%" height={300}>
+                <LineChart data={dadosTendencia.slice(-10)}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="data" />
+                  <YAxis />
+                  <RechartsTooltip />
+                  <Legend />
+                  <Line type="monotone" dataKey="total" stroke="#8884d8" name="Total" />
+                  <Line type="monotone" dataKey="encerrado" stroke="#82ca9d" name="Encerrados" />
+                </LineChart>
+              </ResponsiveContainer>
+            </Paper>
+          </Grid>
+        </Grid>
+      )}
+
+      {tabValue === 2 && (
+        <Grid container spacing={3}>
+          <Grid item xs={12} md={4}>
+            <Card>
+              <CardContent>
+                <Typography color="textSecondary" gutterBottom>Taxa de Encerramento</Typography>
+                <Typography variant="h2">
+                  {((todosFindings.filter(f => f.status === 'encerrado').length / (estatisticas?.total || 1)) * 100).toFixed(1)}%
+                </Typography>
+                <LinearProgress 
+                  variant="determinate" 
+                  value={(todosFindings.filter(f => f.status === 'encerrado').length / (estatisticas?.total || 1)) * 100} 
+                  sx={{ mt: 2, height: 10, borderRadius: 5 }}
+                />
+              </CardContent>
+            </Card>
+          </Grid>
+
+          <Grid item xs={12} md={4}>
+            <Card>
+              <CardContent>
+                <Typography color="textSecondary" gutterBottom>Cumprimento de Prazos</Typography>
+                <Typography variant="h2">
+                  {((todosFindings.filter(f => f.data_vencimento && new Date(f.data_vencimento) >= new Date()).length / (estatisticas?.total || 1)) * 100).toFixed(1)}%
+                </Typography>
+                <LinearProgress 
+                  variant="determinate" 
+                  value={((todosFindings.filter(f => f.data_vencimento && new Date(f.data_vencimento) >= new Date()).length / (estatisticas?.total || 1)) * 100)} 
+                  sx={{ mt: 2, height: 10, borderRadius: 5 }}
+                />
+              </CardContent>
+            </Card>
+          </Grid>
+
+          <Grid item xs={12} md={4}>
+            <Card>
+              <CardContent>
+                <Typography color="textSecondary" gutterBottom>Eficiência Inspetores</Typography>
+                <Typography variant="h2">
+                  {Math.round(todosFindings.length / (new Set(todosFindings.map(f => f.inspetor_id)).size || 1))}
+                </Typography>
+                <Typography variant="caption">Findings por inspetor</Typography>
+              </CardContent>
+            </Card>
+          </Grid>
+        </Grid>
+      )}
+
+      {tabValue === 3 && (
+        <Paper sx={{ p: 2 }}>
+          <Typography variant="h6" gutterBottom>
+            Lista Detalhada de Findings
+          </Typography>
+          <TableContainer sx={{ maxHeight: 500 }}>
+            <Table stickyHeader size="small">
+              <TableHead>
+                <TableRow>
+                  <TableCell>Nº Processo</TableCell>
+                  <TableCell>Aeródromo</TableCell>
+                  <TableCell>Área</TableCell>
+                  <TableCell>Status</TableCell>
+                  <TableCell>Prioridade</TableCell>
+                  <TableCell>Data Inspeção</TableCell>
+                  <TableCell>Inspetor</TableCell>
+                  <TableCell>Vencimento</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {todosFindings.slice(0, 50).map((finding) => (
+                  <TableRow key={finding.id} hover>
+                    <TableCell>{finding.numero_processo}</TableCell>
+                    <TableCell>{finding.aerodromo?.codigo_oaci}</TableCell>
+                    <TableCell>{finding.area_inspecao?.codigo}</TableCell>
+                    <TableCell>
+                      <Chip 
+                        label={finding.status === 'parte1_concluida' ? 'Aguardando Operador' :
+                               finding.status === 'parte2_concluida' ? 'Aguardando Avaliação' :
+                               finding.status === 'encerrado' ? 'Encerrado' :
+                               finding.status === 'rascunho' ? 'Rascunho' :
+                               finding.status || 'Desconhecido'} 
+                        size="small"
+                        color={
+                          finding.status === 'encerrado' ? 'success' :
+                          finding.status === 'parte1_concluida' ? 'info' :
+                          finding.status === 'parte2_concluida' ? 'warning' :
+                          finding.status === 'rascunho' ? 'default' : 'default'
+                        }
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <Chip 
+                        label={finding.prioridade === 'alta' ? 'Alta' :
+                               finding.prioridade === 'media' ? 'Média' :
+                               finding.prioridade === 'baixa' ? 'Baixa' :
+                               finding.prioridade || 'N/A'} 
+                        size="small"
+                        color={
+                          finding.prioridade === 'alta' ? 'error' :
+                          finding.prioridade === 'media' ? 'warning' : 'success'
+                        }
+                      />
+                    </TableCell>
+                    <TableCell>{new Date(finding.data_inspecao).toLocaleDateString()}</TableCell>
+                    <TableCell>{finding.inspetor?.nome_completo}</TableCell>
+                    <TableCell>
+                      {finding.data_vencimento ? new Date(finding.data_vencimento).toLocaleDateString() : '-'}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        </Paper>
       )}
     </Layout>
   );

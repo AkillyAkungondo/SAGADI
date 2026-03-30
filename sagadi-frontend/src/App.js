@@ -1,37 +1,38 @@
-import React from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { ThemeProvider, createTheme } from '@mui/material/styles';
-import CssBaseline from '@mui/material/CssBaseline';
-import { AuthProvider, useAuth } from './context/AuthContext';
-import { NotificationContainer } from './components/Common/Notification';
-import { AnimatePresence } from 'framer-motion';
+import React from "react";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { ThemeProvider, createTheme } from "@mui/material/styles";
+import CssBaseline from "@mui/material/CssBaseline";
+import { AuthProvider, useAuth } from "./context/AuthContext";
+import { NotificationContainer } from "./components/Common/Notification";
+import { AnimatePresence } from "framer-motion";
 
 // Importar páginas
-import { Login } from './pages/Login';
-import { Dashboard } from './pages/Dashboard';
-import { FindingsList } from './pages/Findings/FindingsList';
-import { CreateFinding } from './pages/Findings/CreateFinding';
-import { FindingDetail } from './pages/Findings/FindingDetail';
-import { FindingDocumentPage } from './pages/Findings/FindingDocumentPage';
-import { UsersPage } from './pages/Admin/UsersPage';
-import { AerodromosPage } from './pages/Aerodromos/AerodromosPage';
-import { AreasInspecaoPage } from './pages/AreasInspecao/AreasInspecaoPage';
-import { PerfilPage } from './pages/Perfil/PerfilPage';
-import { ResponderFinding } from './pages/Findings/ResponderFinding';
+import { Login } from "./pages/Login";
+import { Dashboard } from "./pages/Dashboard";
+import { FindingsList } from "./pages/Findings/FindingsList";
+import { CreateFinding } from "./pages/Findings/CreateFinding";
+import { FindingDetail } from "./pages/Findings/FindingDetail";
+import { FindingDocumentPage } from "./pages/Findings/FindingDocumentPage";
+import { UsersPage } from "./pages/Admin/UsersPage";
+import { AerodromosPage } from "./pages/Aerodromos/AerodromosPage";
+import { AreasInspecaoPage } from "./pages/AreasInspecao/AreasInspecaoPage";
+import { PerfilPage } from "./pages/Perfil/PerfilPage";
+import { ResponderFinding } from "./pages/Findings/ResponderFinding";
+import { FindingDocumentPrint } from "./pages/Findings/FindingDocumentPrint";
 
 // Tema claro padrão
 const theme = createTheme({
   palette: {
-    mode: 'light',
+    mode: "light",
     primary: {
-      main: '#1976d2',
+      main: "#1976d2",
     },
     secondary: {
-      main: '#dc004e',
+      main: "#dc004e",
     },
     background: {
-      default: '#f5f5f5',
-      paper: '#ffffff',
+      default: "#f5f5f5",
+      paper: "#ffffff",
     },
   },
   typography: {
@@ -131,6 +132,14 @@ function AppContent() {
           element={
             <PrivateRoute>
               <PerfilPage />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/findings/:id/documento/print"
+          element={
+            <PrivateRoute>
+              <FindingDocumentPrint />
             </PrivateRoute>
           }
         />

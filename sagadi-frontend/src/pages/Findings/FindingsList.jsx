@@ -338,10 +338,13 @@ export const FindingsList = () => {
   const gerarRelatorioPDF = async () => {
     try {
       notify.info("Gerando relatório PDF...");
-      
+
       // Usar o pdfService para gerar o relatório
-      await pdfService.downloadRelatorioFindings(findingsFiltrados, 'relatorio-findings');
-      
+      await pdfService.downloadRelatorioFindings(
+        findingsFiltrados,
+        "relatorio-findings",
+      );
+
       notify.success("Relatório gerado com sucesso!");
     } catch (error) {
       console.error("Erro ao gerar relatório:", error);
@@ -1174,7 +1177,9 @@ export const FindingsList = () => {
                                   size="small"
                                   color="warning"
                                   onClick={() =>
-                                    navigate(`/findings/${finding.id}/avaliar`)
+                                    navigate(
+                                      `/findings/${finding.id}?avaliar=true`,
+                                    )
                                   }
                                 >
                                   <CheckCircleIcon fontSize="small" />
