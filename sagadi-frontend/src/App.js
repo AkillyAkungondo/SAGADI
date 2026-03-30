@@ -5,6 +5,7 @@ import CssBaseline from "@mui/material/CssBaseline";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { NotificationContainer } from "./components/Common/Notification";
 import { AnimatePresence } from "framer-motion";
+import { PageTransition } from "./components/Common/PageTransition"; 
 
 // Importar páginas
 import { Login } from "./pages/Login";
