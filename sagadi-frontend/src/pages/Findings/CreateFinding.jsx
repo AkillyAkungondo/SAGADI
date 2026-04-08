@@ -21,7 +21,7 @@ import {
   CircularProgress,
   Stepper,
   Step,
-  StepLabel
+  StepLabel,
 } from '@mui/material';
 import { ArrowBack as ArrowBackIcon } from '@mui/icons-material';
 
@@ -65,7 +65,6 @@ export const CreateFinding = () => {
         AerodromosService.listar(),
         AreasInspecaoService.listar()
       ]);
-      
       setAerodromos(aerodromosData);
       setAreas(areasData);
     } catch (error) {
@@ -106,11 +105,8 @@ export const CreateFinding = () => {
         ...formData,
         numero_processo: numeroProcesso
       });
-      
       setSuccess('Finding criado com sucesso!');
-      setTimeout(() => {
-        navigate('/findings');
-      }, 2000);
+      setTimeout(() => navigate('/findings'), 2000);
     } catch (error) {
       console.error('Erro ao criar finding:', error);
       setError(error.response?.data?.error || 'Erro ao criar finding');
@@ -132,58 +128,33 @@ export const CreateFinding = () => {
   return (
     <Layout title="Novo Finding">
       <Box sx={{ mb: 3 }}>
-        <Button
-          startIcon={<ArrowBackIcon />}
-          onClick={() => navigate('/findings')}
-        >
+        <Button startIcon={<ArrowBackIcon />} onClick={() => navigate('/findings')}>
           Voltar para Lista
         </Button>
       </Box>
 
-      <Paper sx={{ p: 3 }}>
-        <Typography variant="h6" gutterBottom>
+      <Paper variant="outlined" sx={{ p: 3 }}>
+        <Typography variant="h5" sx={{ fontWeight: 600, color: '#1F4E79', mb: 2 }}>
           Criar Novo Finding - Parte 1 (Inspetor)
         </Typography>
-        
-        <Stepper activeStep={0} sx={{ my: 4 }}>
-          <Step>
-            <StepLabel>Parte 1 - Inspeção</StepLabel>
-          </Step>
-          <Step>
-            <StepLabel>Parte 2 - Resposta</StepLabel>
-          </Step>
-          <Step>
-            <StepLabel>Parte 3 - Avaliação</StepLabel>
-          </Step>
+
+        <Stepper activeStep={0} sx={{ mb: 4 }}>
+          <Step><StepLabel>Parte 1 - Inspeção</StepLabel></Step>
+          <Step><StepLabel>Parte 2 - Resposta</StepLabel></Step>
+          <Step><StepLabel>Parte 3 - Avaliação</StepLabel></Step>
         </Stepper>
 
-        {error && (
-          <Alert severity="error" sx={{ mb: 3 }}>
-            {error}
-          </Alert>
-        )}
-
-        {success && (
-          <Alert severity="success" sx={{ mb: 3 }}>
-            {success}
-          </Alert>
-        )}
+        {error && <Alert severity="error" sx={{ mb: 3 }}>{error}</Alert>}
+        {success && <Alert severity="success" sx={{ mb: 3 }}>{success}</Alert>}
 
         <Box component="form" onSubmit={handleSubmit}>
           <Grid container spacing={3}>
             <Grid item xs={12} md={6}>
               <FormControl fullWidth required>
                 <InputLabel>Aeródromo</InputLabel>
-                <Select
-                  name="aerodromo_id"
-                  value={formData.aerodromo_id}
-                  label="Aeródromo"
-                  onChange={handleChange}
-                >
+                <Select name="aerodromo_id" value={formData.aerodromo_id} label="Aeródromo" onChange={handleChange}>
                   {aerodromos.map(aero => (
-                    <MenuItem key={aero.id} value={aero.id}>
-                      {aero.codigo_oaci} - {aero.nome}
-                    </MenuItem>
+                    <MenuItem key={aero.id} value={aero.id}>{aero.codigo_oaci} - {aero.nome}</MenuItem>
                   ))}
                 </Select>
               </FormControl>
@@ -192,16 +163,9 @@ export const CreateFinding = () => {
             <Grid item xs={12} md={6}>
               <FormControl fullWidth required>
                 <InputLabel>Área de Inspeção</InputLabel>
-                <Select
-                  name="area_inspecao_id"
-                  value={formData.area_inspecao_id}
-                  label="Área de Inspeção"
-                  onChange={handleChange}
-                >
+                <Select name="area_inspecao_id" value={formData.area_inspecao_id} label="Área de Inspeção" onChange={handleChange}>
                   {areas.map(area => (
-                    <MenuItem key={area.id} value={area.id}>
-                      {area.codigo} - {area.nome}
-                    </MenuItem>
+                    <MenuItem key={area.id} value={area.id}>{area.codigo} - {area.nome}</MenuItem>
                   ))}
                 </Select>
               </FormControl>
@@ -212,10 +176,7 @@ export const CreateFinding = () => {
                 fullWidth
                 label="Número do Processo"
                 value={numeroProcesso || 'Selecione aeródromo e área'}
-                InputProps={{
-                  readOnly: true,
-                  endAdornment: gerandoNumero && <CircularProgress size={20} />
-                }}
+                InputProps={{ readOnly: true, endAdornment: gerandoNumero && <CircularProgress size={20} /> }}
                 helperText="Gerado automaticamente"
               />
             </Grid>
@@ -236,19 +197,12 @@ export const CreateFinding = () => {
             <Grid item xs={12} md={6}>
               <FormControl fullWidth required>
                 <InputLabel>Nível do Finding</InputLabel>
-                <Select
-                  name="finding_level"
-                  value={formData.finding_level}
-                  label="Nível do Finding"
-                  onChange={handleChange}
-                >
+                <Select name="finding_level" value={formData.finding_level} label="Nível do Finding" onChange={handleChange}>
                   <MenuItem value={1}>Nível 1 - Baixo</MenuItem>
                   <MenuItem value={2}>Nível 2 - Médio</MenuItem>
                   <MenuItem value={3}>Nível 3 - Alto</MenuItem>
                 </Select>
-                <FormHelperText>
-                  Nível 1: Baixo | Nível 2: Médio | Nível 3: Alto
-                </FormHelperText>
+                <FormHelperText>Nível 1: Baixo | Nível 2: Médio | Nível 3: Alto</FormHelperText>
               </FormControl>
             </Grid>
 
@@ -279,17 +233,8 @@ export const CreateFinding = () => {
 
             <Grid item xs={12}>
               <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
-                <Button
-                  variant="outlined"
-                  onClick={() => navigate('/findings')}
-                >
-                  Cancelar
-                </Button>
-                <Button
-                  type="submit"
-                  variant="contained"
-                  disabled={loading || !numeroProcesso}
-                >
+                <Button variant="outlined" onClick={() => navigate('/findings')}>Cancelar</Button>
+                <Button type="submit" variant="contained" disabled={loading || !numeroProcesso}>
                   {loading ? <CircularProgress size={24} /> : 'Criar Finding'}
                 </Button>
               </Box>

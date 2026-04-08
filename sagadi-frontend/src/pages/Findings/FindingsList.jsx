@@ -36,15 +36,10 @@ import {
   AccordionSummary,
   AccordionDetails,
   Badge,
-  Menu,
-  ListItemIcon,
-  ListItemText,
-  Checkbox,
   FormGroup,
   FormControlLabel,
+  Checkbox,
   Slider,
-  Zoom,
-  Fade,
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -57,12 +52,8 @@ import {
   Warning as WarningIcon,
   Error as ErrorIcon,
   FilterList as FilterListIcon,
-  Save as SaveIcon,
-  Download as DownloadIcon,
   Refresh as RefreshIcon,
   ExpandMore as ExpandMoreIcon,
-  Close as CloseIcon,
-  Bookmark as BookmarkIcon,
   FlightTakeoff as FlightIcon,
   Category as CategoryIcon,
   Person as PersonIcon,
@@ -72,19 +63,18 @@ import {
 export const FindingsList = () => {
   const navigate = useNavigate();
   const { user, isInspetor, isOperador, isAdmin } = useAuth();
-  
-  // Estados principais
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [findings, setFindings] = useState([]);
   const [aerodromos, setAerodromos] = useState([]);
   const [areas, setAreas] = useState([]);
-  
-  // Estados para paginação
+
+  // Paginação
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
-  
-  // Estados para filtros avançados
+
+  // Filtros
   const [filtros, setFiltros] = useState({
     status: '',
     aerodromo_id: '',
@@ -94,49 +84,41 @@ export const FindingsList = () => {
     prioridade: '',
     nivel: '',
     keyword: '',
-    inspetor_id: user?.id || '',
     apenas_meus: false,
     apenas_atrasados: false,
     apenas_abertos: false,
     prazo_maximo: 30,
-    ordenacao: 'data_desc'
   });
-  
-  // Estados para ordenação
+
+  // Ordenação
   const [orderBy, setOrderBy] = useState('created_at');
   const [order, setOrder] = useState('desc');
-  
-  // Estados para busca
+
+  // Pesquisa rápida
   const [searchTerm, setSearchTerm] = useState('');
-  
-  // Estados para pesquisas salvas
-  const [pesquisasSalvas, setPesquisasSalvas] = useState([]);
-  const [menuPesquisas, setMenuPesquisas] = useState(null);
-  
-  // Estados para estatísticas rápidas
+
+  // Estatísticas rápidas
   const [estatisticas, setEstatisticas] = useState({
     total: 0,
     abertos: 0,
     atrasados: 0,
-    concluidos: 0
+    concluidos: 0,
   });
 
   useEffect(() => {
     carregarDadosIniciais();
-    carregarPesquisasSalvas();
   }, []);
 
   useEffect(() => {
     carregarFindings();
-  }, [filtros, page, rowsPerPage, orderBy, order]);
+  }, [page, rowsPerPage, orderBy, order, filtros]);
 
   const carregarDadosIniciais = async () => {
     try {
       const [aerodromosData, areasData] = await Promise.all([
         AerodromosService.listar(),
-        AreasInspecaoService.listar()
+        AreasInspecaoService.listar(),
       ]);
-      
       setAerodromos(aerodromosData || []);
       setAreas(areasData || []);
     } catch (error) {
@@ -148,6 +130,7 @@ export const FindingsList = () => {
     try {
       setLoading(true);
       const params = {};
+
       if (filtros.status) params.status = filtros.status;
       if (filtros.aerodromo_id) params.aerodromo_id = filtros.aerodromo_id;
       if (filtros.area_id) params.area_id = filtros.area_id;
@@ -156,23 +139,22 @@ export const FindingsList = () => {
       if (filtros.keyword) params.keyword = filtros.keyword;
       if (filtros.data_inicio) params.data_inicio = filtros.data_inicio;
       if (filtros.data_fim) params.data_fim = filtros.data_fim;
+
       if (filtros.apenas_meus && (isInspetor || isOperador)) {
         params.inspetor_id = user.id;
       }
       if (filtros.apenas_atrasados) params.atrasados = true;
       if (filtros.apenas_abertos) params.status_not = 'encerrado';
+
       params.orderBy = orderBy;
       params.order = order;
-      
+
       const data = await FindingsService.listar(params);
       setFindings(data || []);
+
       const total = data?.length || 0;
       const abertos = data?.filter(f => f.status !== 'encerrado').length || 0;
-      const atrasados = data?.filter(f => 
-        f.status !== 'encerrado' && 
-        f.data_vencimento && 
-        new Date(f.data_vencimento) < new Date()
-      ).length || 0;
+      const atrasados = data?.filter(f => f.status !== 'encerrado' && f.data_vencimento && new Date(f.data_vencimento) < new Date()).length || 0;
       const concluidos = data?.filter(f => f.status === 'encerrado').length || 0;
       setEstatisticas({ total, abertos, atrasados, concluidos });
     } catch (error) {
@@ -183,14 +165,12 @@ export const FindingsList = () => {
     }
   };
 
-  const carregarPesquisasSalvas = () => {
-    const salvas = localStorage.getItem('@SAGADI:pesquisas');
-    if (salvas) setPesquisasSalvas(JSON.parse(salvas));
-  };
-
   const handleFiltroChange = (e) => {
     const { name, value, type, checked } = e.target;
-    setFiltros(prev => ({ ...prev, [name]: type === 'checkbox' ? checked : value }));
+    setFiltros(prev => ({
+      ...prev,
+      [name]: type === 'checkbox' ? checked : value,
+    }));
   };
 
   const handleSliderChange = (event, newValue) => {
@@ -199,7 +179,7 @@ export const FindingsList = () => {
 
   const aplicarFiltros = () => {
     setPage(0);
-    carregarFindings();
+    // O useEffect com dependência [filtros] já chama carregarFindings automaticamente
   };
 
   const limparFiltros = () => {
@@ -212,43 +192,14 @@ export const FindingsList = () => {
       prioridade: '',
       nivel: '',
       keyword: '',
-      inspetor_id: user?.id || '',
       apenas_meus: false,
       apenas_atrasados: false,
       apenas_abertos: false,
       prazo_maximo: 30,
-      ordenacao: 'data_desc'
     });
     setSearchTerm('');
     setPage(0);
-    setTimeout(() => carregarFindings(), 100);
-  };
-
-  const guardarPesquisa = () => {
-    const nome = prompt('Nome para esta pesquisa:');
-    if (!nome) return;
-    const novaPesquisa = {
-      id: Date.now(),
-      nome,
-      filtros: { ...filtros },
-      data: new Date().toISOString()
-    };
-    const novasPesquisas = [...pesquisasSalvas, novaPesquisa];
-    setPesquisasSalvas(novasPesquisas);
-    localStorage.setItem('@SAGADI:pesquisas', JSON.stringify(novasPesquisas));
-  };
-
-  const carregarPesquisaSalva = (pesquisa) => {
-    setFiltros(pesquisa.filtros);
-    setMenuPesquisas(null);
-    setPage(0);
-    setTimeout(() => carregarFindings(), 100);
-  };
-
-  const removerPesquisaSalva = (id) => {
-    const novasPesquisas = pesquisasSalvas.filter(p => p.id !== id);
-    setPesquisasSalvas(novasPesquisas);
-    localStorage.setItem('@SAGADI:pesquisas', JSON.stringify(novasPesquisas));
+    // O useEffect com dependência [filtros] será acionado automaticamente
   };
 
   const handleChangePage = (event, newPage) => setPage(newPage);
@@ -256,32 +207,11 @@ export const FindingsList = () => {
     setRowsPerPage(parseInt(event.target.value, 10));
     setPage(0);
   };
+
   const handleRequestSort = (property) => {
     const isAsc = orderBy === property && order === 'asc';
     setOrder(isAsc ? 'desc' : 'asc');
     setOrderBy(property);
-  };
-
-  const exportarParaCSV = () => {
-    const dadosExport = findings.map(f => ({
-      'Nº Processo': f.numero_processo,
-      'Aeródromo': f.aerodromo?.codigo_oaci,
-      'Área': f.area_inspecao?.codigo,
-      'Status': f.status,
-      'Prioridade': f.prioridade,
-      'Nível': f.finding_level,
-      'Data Inspeção': new Date(f.data_inspecao).toLocaleDateString(),
-      'Inspetor': f.inspetor?.nome_completo,
-      'Data Vencimento': f.data_vencimento ? new Date(f.data_vencimento).toLocaleDateString() : '',
-      'Descrição': f.finding_descricao?.substring(0, 100) + '...'
-    }));
-    const csv = dadosExport.map(row => Object.values(row).join(';')).join('\n');
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `findings_${new Date().toISOString().split('T')[0]}.csv`;
-    a.click();
   };
 
   const getStatusChip = (status) => {
@@ -292,7 +222,7 @@ export const FindingsList = () => {
       parte2_concluida: { color: 'warning', icon: <WarningIcon />, label: 'Aguardando Avaliação' },
       aguarda_avaliacao: { color: 'warning', icon: <WarningIcon />, label: 'Aguardando Avaliação' },
       em_correcao: { color: 'error', icon: <ErrorIcon />, label: 'Em Correção' },
-      encerrado: { color: 'success', icon: <CheckCircleIcon />, label: 'Encerrado' }
+      encerrado: { color: 'success', icon: <CheckCircleIcon />, label: 'Encerrado' },
     };
     const config = statusConfig[status] || { color: 'default', icon: <PendingIcon />, label: status };
     return <Chip icon={config.icon} label={config.label} color={config.color} size="small" variant="outlined" />;
@@ -306,7 +236,7 @@ export const FindingsList = () => {
   const filtrarPorBusca = (findings) => {
     if (!searchTerm) return findings;
     const term = searchTerm.toLowerCase();
-    return findings.filter(f => 
+    return findings.filter(f =>
       f.numero_processo?.toLowerCase().includes(term) ||
       f.aerodromo?.nome?.toLowerCase().includes(term) ||
       f.aerodromo?.codigo_oaci?.toLowerCase().includes(term) ||
@@ -349,16 +279,6 @@ export const FindingsList = () => {
           Gestão de Findings
         </Typography>
         <Box sx={{ display: 'flex', gap: 1 }}>
-          <Button variant="outlined" startIcon={<DownloadIcon />} onClick={exportarParaCSV}>
-            CSV
-          </Button>
-          <Tooltip title="Pesquisas Salvas">
-            <IconButton onClick={(e) => setMenuPesquisas(e.currentTarget)}>
-              <Badge badgeContent={pesquisasSalvas.length} color="primary">
-                <BookmarkIcon />
-              </Badge>
-            </IconButton>
-          </Tooltip>
           <Tooltip title="Recarregar">
             <IconButton onClick={carregarFindings}>
               <RefreshIcon />
@@ -371,21 +291,6 @@ export const FindingsList = () => {
           )}
         </Box>
       </Box>
-
-      {/* Menu de Pesquisas Salvas */}
-      <Menu anchorEl={menuPesquisas} open={Boolean(menuPesquisas)} onClose={() => setMenuPesquisas(null)}>
-        {pesquisasSalvas.length === 0 ? (
-          <MenuItem disabled>Nenhuma pesquisa salva</MenuItem>
-        ) : (
-          pesquisasSalvas.map(pesquisa => (
-            <MenuItem key={pesquisa.id}>
-              <ListItemIcon><BookmarkIcon fontSize="small" /></ListItemIcon>
-              <ListItemText primary={pesquisa.nome} secondary={new Date(pesquisa.data).toLocaleDateString()} onClick={() => carregarPesquisaSalva(pesquisa)} />
-              <IconButton size="small" edge="end" onClick={() => removerPesquisaSalva(pesquisa.id)}><CloseIcon fontSize="small" /></IconButton>
-            </MenuItem>
-          ))
-        )}
-      </Menu>
 
       {error && <Alert severity="error" sx={{ mb: 3 }}>{error}</Alert>}
 
@@ -405,13 +310,17 @@ export const FindingsList = () => {
                   <InputAdornment position="end">
                     <IconButton size="small" onClick={() => setSearchTerm('')}><ClearIcon /></IconButton>
                   </InputAdornment>
-                )
+                ),
               }}
             />
           </Grid>
           <Grid item>
             <Badge badgeContent={filtrosAtivos} color="primary">
-              <Button variant="outlined" startIcon={<FilterListIcon />} onClick={() => document.getElementById('filtros-avancados').scrollIntoView({ behavior: 'smooth' })}>
+              <Button
+                variant="outlined"
+                startIcon={<FilterListIcon />}
+                onClick={() => document.getElementById('filtros-avancados').scrollIntoView({ behavior: 'smooth' })}
+              >
                 Filtros
               </Button>
             </Badge>
@@ -464,7 +373,6 @@ export const FindingsList = () => {
           </AccordionSummary>
           <AccordionDetails>
             <Grid container spacing={3}>
-              {/* Linha 1 */}
               <Grid item xs={12} md={3}>
                 <FormControl fullWidth size="small">
                   <InputLabel>Status</InputLabel>
@@ -511,7 +419,6 @@ export const FindingsList = () => {
                 </FormControl>
               </Grid>
 
-              {/* Linha 2 - Datas */}
               <Grid item xs={12} md={3}>
                 <TextField fullWidth size="small" type="date" name="data_inicio" label="Data Início" value={filtros.data_inicio} onChange={handleFiltroChange} InputLabelProps={{ shrink: true }} />
               </Grid>
@@ -530,30 +437,13 @@ export const FindingsList = () => {
                 </FormControl>
               </Grid>
               <Grid item xs={12} md={3}>
-                <FormControl fullWidth size="small">
-                  <InputLabel>Ordenar por</InputLabel>
-                  <Select value={filtros.ordenacao} label="Ordenar por" onChange={(e) => {
-                    const [novoOrderBy, novoOrder] = e.target.value.split('_');
-                    setOrderBy(novoOrderBy);
-                    setOrder(novoOrder);
-                    setFiltros({ ...filtros, ordenacao: e.target.value });
-                  }}>
-                    <MenuItem value="data_desc">Data (mais recente)</MenuItem>
-                    <MenuItem value="data_asc">Data (mais antiga)</MenuItem>
-                    <MenuItem value="vencimento_asc">Vencimento (próximo)</MenuItem>
-                    <MenuItem value="vencimento_desc">Vencimento (distante)</MenuItem>
-                    <MenuItem value="prioridade_desc">Prioridade (maior)</MenuItem>
-                    <MenuItem value="prioridade_asc">Prioridade (menor)</MenuItem>
-                  </Select>
-                </FormControl>
+                {/* Placeholder vazio para alinhamento */}
               </Grid>
 
-              {/* Palavra-chave */}
               <Grid item xs={12}>
                 <TextField fullWidth size="small" name="keyword" label="Palavra-chave na descrição" value={filtros.keyword} onChange={handleFiltroChange} placeholder="Digite palavras para buscar na descrição..." />
               </Grid>
 
-              {/* Filtros booleanos */}
               <Grid item xs={12}>
                 <Paper variant="outlined" sx={{ p: 2 }}>
                   <Typography variant="subtitle2" gutterBottom>Filtros Rápidos</Typography>
@@ -567,18 +457,15 @@ export const FindingsList = () => {
                 </Paper>
               </Grid>
 
-              {/* Slider de prazo */}
               <Grid item xs={12}>
                 <Typography gutterBottom>Prazo máximo (dias): {filtros.prazo_maximo}</Typography>
                 <Slider value={filtros.prazo_maximo} onChange={handleSliderChange} min={1} max={90} valueLabelDisplay="auto" />
               </Grid>
 
-              {/* Botões de ação */}
               <Grid item xs={12}>
                 <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
                   <Button variant="contained" onClick={aplicarFiltros} startIcon={<SearchIcon />}>Aplicar Filtros</Button>
                   <Button variant="outlined" onClick={limparFiltros} startIcon={<ClearIcon />}>Limpar</Button>
-                  <Button variant="outlined" onClick={guardarPesquisa} startIcon={<SaveIcon />}>Guardar Pesquisa</Button>
                 </Box>
               </Grid>
             </Grid>
@@ -610,17 +497,17 @@ export const FindingsList = () => {
                 const atrasado = finding.status !== 'encerrado' && finding.data_vencimento && new Date(finding.data_vencimento) < new Date();
                 return (
                   <TableRow key={finding.id} hover>
-                    <TableCell><Typography variant="body2" fontWeight="medium">{finding.numero_processo}</Typography>{atrasado && <Chip label="ATRASADO" size="small" color="error" sx={{ mt: 0.5 }} />}</TableCell>
+                    <TableCell>{finding.numero_processo}</TableCell>
                     <TableCell>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}><FlightIcon fontSize="small" color="action" /><Typography variant="body2">{finding.aerodromo?.codigo_oaci}</Typography></Box>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}><FlightIcon fontSize="small" color="action" />{finding.aerodromo?.codigo_oaci}</Box>
                       <Typography variant="caption" color="textSecondary">{finding.aerodromo?.nome}</Typography>
                     </TableCell>
-                    <TableCell><Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}><CategoryIcon fontSize="small" color="action" /><Typography variant="body2">{finding.area_inspecao?.codigo}</Typography></Box></TableCell>
+                    <TableCell>{finding.area_inspecao?.codigo}</TableCell>
                     <TableCell>{new Date(finding.data_inspecao).toLocaleDateString()}</TableCell>
                     <TableCell>{getStatusChip(finding.status)}</TableCell>
                     <TableCell>{getPrioridadeChip(finding.prioridade)}</TableCell>
-                    <TableCell><Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}><PersonIcon fontSize="small" color="action" /><Typography variant="body2">{finding.inspetor?.nome_completo}</Typography></Box></TableCell>
-                    <TableCell>{finding.data_vencimento ? <Typography variant="body2" color={atrasado ? 'error' : 'inherit'}>{new Date(finding.data_vencimento).toLocaleDateString()}</Typography> : '-'}</TableCell>
+                    <TableCell>{finding.inspetor?.nome_completo}</TableCell>
+                    <TableCell>{finding.data_vencimento ? new Date(finding.data_vencimento).toLocaleDateString() : '-'}</TableCell>
                     <TableCell align="right">
                       <Box sx={{ display: 'flex', gap: 0.5, justifyContent: 'flex-end' }}>
                         <Tooltip title="Visualizar"><IconButton size="small" onClick={() => navigate(`/findings/${finding.id}`)}><VisibilityIcon fontSize="small" /></IconButton></Tooltip>
@@ -644,16 +531,6 @@ export const FindingsList = () => {
         </Table>
         <TablePagination rowsPerPageOptions={[5,10,25,50]} component="div" count={findingsFiltrados.length} rowsPerPage={rowsPerPage} page={page} onPageChange={handleChangePage} onRowsPerPageChange={handleChangeRowsPerPage} labelRowsPerPage="Linhas por página" />
       </TableContainer>
-
-      {/* Rodapé com estatísticas */}
-      <Paper variant="outlined" sx={{ p: 2, mt: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <Typography variant="body2" color="textSecondary">Mostrando {paginatedFindings.length} de {findingsFiltrados.length} findings</Typography>
-        <Box sx={{ display: 'flex', gap: 2 }}>
-          <Chip icon={<CheckCircleIcon />} label={`${estatisticas.concluidos} concluídos`} size="small" variant="outlined" />
-          <Chip icon={<WarningIcon />} label={`${estatisticas.abertos} abertos`} size="small" variant="outlined" />
-          <Chip icon={<ErrorIcon />} label={`${estatisticas.atrasados} atrasados`} size="small" variant="outlined" />
-        </Box>
-      </Paper>
     </Layout>
   );
 };

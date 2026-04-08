@@ -32,7 +32,7 @@ import {
   DialogContent,
   DialogActions,
   Switch,
-  FormControlLabel
+  FormControlLabel,
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -41,7 +41,7 @@ import {
   Block as BlockIcon,
   CheckCircle as CheckCircleIcon,
   Search as SearchIcon,
-  Refresh as RefreshIcon
+  Refresh as RefreshIcon,
 } from '@mui/icons-material';
 
 export const UsersPage = () => {
@@ -53,11 +53,9 @@ export const UsersPage = () => {
   const [perfis, setPerfis] = useState([]);
   const [direcoes, setDirecoes] = useState([]);
   
-  // Estados para paginação
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   
-  // Estados para diálogo
   const [openDialog, setOpenDialog] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
   const [formData, setFormData] = useState({
@@ -86,7 +84,6 @@ export const UsersPage = () => {
         UsersService.getPerfis(),
         UsersService.getDirecoes()
       ]);
-      
       setUsers(usersData || []);
       setPerfis(perfisData || []);
       setDirecoes(direcoesData || []);
@@ -134,23 +131,18 @@ export const UsersPage = () => {
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: type === 'checkbox' ? checked : value
-    }));
+    setFormData(prev => ({ ...prev, [name]: type === 'checkbox' ? checked : value }));
   };
 
   const handleSubmit = async () => {
     setSubmitting(true);
     setError(null);
-    
     try {
       if (editingUser) {
         await UsersService.atualizar(editingUser.id, formData);
       } else {
         await UsersService.criar(formData);
       }
-      
       await carregarDados();
       handleCloseDialog();
     } catch (error) {
@@ -172,10 +164,7 @@ export const UsersPage = () => {
   };
 
   const handleDelete = async (user) => {
-    if (!window.confirm(`Tem certeza que deseja desativar o utilizador ${user.nome_completo}?`)) {
-      return;
-    }
-    
+    if (!window.confirm(`Tem certeza que deseja desativar o utilizador ${user.nome_completo}?`)) return;
     try {
       await UsersService.deletar(user.id);
       await carregarDados();
@@ -195,7 +184,7 @@ export const UsersPage = () => {
     return direcao?.sigla || 'N/A';
   };
 
-  const filteredUsers = users.filter(user => 
+  const filteredUsers = users.filter(user =>
     user.nome_completo?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     user.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     getPerfilNome(user.perfil_id)?.toLowerCase().includes(searchTerm.toLowerCase())
@@ -206,9 +195,7 @@ export const UsersPage = () => {
   if (loading && users.length === 0) {
     return (
       <Layout title="Gestão de Utilizadores">
-        <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
-          <CircularProgress />
-        </Box>
+        <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}><CircularProgress /></Box>
       </Layout>
     );
   }
@@ -216,262 +203,67 @@ export const UsersPage = () => {
   return (
     <Layout title="Gestão de Utilizadores">
       <Box sx={{ mb: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <Typography variant="h5" component="h1">
-          Utilizadores
-        </Typography>
-        
-        <Button
-          variant="contained"
-          startIcon={<AddIcon />}
-          onClick={() => handleOpenDialog()}
-        >
-          Novo Utilizador
-        </Button>
+        <Typography variant="h4" sx={{ fontWeight: 600, color: '#1F4E79' }}>Utilizadores</Typography>
+        <Button variant="contained" startIcon={<AddIcon />} onClick={() => handleOpenDialog()}>Novo Utilizador</Button>
       </Box>
 
-      {error && (
-        <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError(null)}>
-          {error}
-        </Alert>
-      )}
+      {error && <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError(null)}>{error}</Alert>}
 
-      {/* Barra de Pesquisa */}
-      <Paper sx={{ p: 2, mb: 3 }}>
+      <Paper variant="outlined" sx={{ p: 2, mb: 3 }}>
         <Grid container spacing={2} alignItems="center">
-          <Grid item xs>
-            <TextField
-              fullWidth
-              size="small"
-              placeholder="Pesquisar por nome, email ou perfil..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              InputProps={{
-                startAdornment: <SearchIcon sx={{ mr: 1, color: 'text.secondary' }} />
-              }}
-            />
-          </Grid>
-          <Grid item>
-            <Tooltip title="Recarregar">
-              <IconButton onClick={carregarDados}>
-                <RefreshIcon />
-              </IconButton>
-            </Tooltip>
-          </Grid>
+          <Grid item xs><TextField fullWidth size="small" placeholder="Pesquisar por nome, email ou perfil..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} InputProps={{ startAdornment: <SearchIcon sx={{ mr: 1, color: 'text.secondary' }} /> }} /></Grid>
+          <Grid item><Tooltip title="Recarregar"><IconButton onClick={carregarDados}><RefreshIcon /></IconButton></Tooltip></Grid>
         </Grid>
       </Paper>
 
-      {/* Tabela de Utilizadores */}
-      <TableContainer component={Paper}>
+      <TableContainer component={Paper} variant="outlined">
         <Table size="small">
           <TableHead>
             <TableRow>
-              <TableCell>Nome</TableCell>
-              <TableCell>Email</TableCell>
-              <TableCell>Perfil</TableCell>
-              <TableCell>Direção</TableCell>
-              <TableCell>Cargo</TableCell>
-              <TableCell>Telefone</TableCell>
-              <TableCell>Status</TableCell>
-              <TableCell align="center">Ações</TableCell>
+              <TableCell>Nome</TableCell><TableCell>Email</TableCell><TableCell>Perfil</TableCell><TableCell>Direção</TableCell><TableCell>Cargo</TableCell><TableCell>Telefone</TableCell><TableCell>Status</TableCell><TableCell align="center">Ações</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
             {paginatedUsers.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={8} align="center">
-                  <Typography color="textSecondary" sx={{ py: 2 }}>
-                    Nenhum utilizador encontrado
-                  </Typography>
-                </TableCell>
-              </TableRow>
+              <TableRow><TableCell colSpan={8} align="center">Nenhum utilizador encontrado</TableCell></TableRow>
             ) : (
               paginatedUsers.map((user) => (
                 <TableRow key={user.id} hover>
                   <TableCell>{user.nome_completo}</TableCell>
                   <TableCell>{user.email}</TableCell>
-                  <TableCell>
-                    <Chip 
-                      label={getPerfilNome(user.perfil_id)} 
-                      size="small"
-                      color={user.perfil_id === 1 ? 'primary' : 'default'}
-                    />
-                  </TableCell>
+                  <TableCell><Chip label={getPerfilNome(user.perfil_id)} size="small" color={user.perfil_id === 1 ? 'primary' : 'default'} /></TableCell>
                   <TableCell>{getDirecaoNome(user.direcao_id)}</TableCell>
                   <TableCell>{user.cargo || '-'}</TableCell>
                   <TableCell>{user.telefone || '-'}</TableCell>
-                  <TableCell>
-                    <Chip
-                      label={user.ativo ? 'Ativo' : 'Inativo'}
-                      color={user.ativo ? 'success' : 'error'}
-                      size="small"
-                    />
-                  </TableCell>
+                  <TableCell><Chip label={user.ativo ? 'Ativo' : 'Inativo'} color={user.ativo ? 'success' : 'error'} size="small" /></TableCell>
                   <TableCell align="center">
-                    <Tooltip title="Editar">
-                      <IconButton
-                        size="small"
-                        onClick={() => handleOpenDialog(user)}
-                        disabled={user.id === currentUser?.id}
-                      >
-                        <EditIcon fontSize="small" />
-                      </IconButton>
-                    </Tooltip>
-                    
-                    <Tooltip title={user.ativo ? 'Desativar' : 'Ativar'}>
-                      <IconButton
-                        size="small"
-                        color={user.ativo ? 'error' : 'success'}
-                        onClick={() => handleToggleAtivo(user)}
-                        disabled={user.id === currentUser?.id}
-                      >
-                        {user.ativo ? <BlockIcon fontSize="small" /> : <CheckCircleIcon fontSize="small" />}
-                      </IconButton>
-                    </Tooltip>
-                    
-                    <Tooltip title="Desativar Permanentemente">
-                      <IconButton
-                        size="small"
-                        color="error"
-                        onClick={() => handleDelete(user)}
-                        disabled={user.id === currentUser?.id}
-                      >
-                        <DeleteIcon fontSize="small" />
-                      </IconButton>
-                    </Tooltip>
+                    <Tooltip title="Editar"><IconButton size="small" onClick={() => handleOpenDialog(user)} disabled={user.id === currentUser?.id}><EditIcon fontSize="small" /></IconButton></Tooltip>
+                    <Tooltip title={user.ativo ? 'Desativar' : 'Ativar'}><IconButton size="small" color={user.ativo ? 'error' : 'success'} onClick={() => handleToggleAtivo(user)} disabled={user.id === currentUser?.id}>{user.ativo ? <BlockIcon fontSize="small" /> : <CheckCircleIcon fontSize="small" />}</IconButton></Tooltip>
+                    <Tooltip title="Desativar Permanentemente"><IconButton size="small" color="error" onClick={() => handleDelete(user)} disabled={user.id === currentUser?.id}><DeleteIcon fontSize="small" /></IconButton></Tooltip>
                   </TableCell>
                 </TableRow>
               ))
             )}
           </TableBody>
         </Table>
-        
-        <TablePagination
-          rowsPerPageOptions={[5, 10, 25, 50]}
-          component="div"
-          count={filteredUsers.length}
-          rowsPerPage={rowsPerPage}
-          page={page}
-          onPageChange={(e, newPage) => setPage(newPage)}
-          onRowsPerPageChange={(e) => {
-            setRowsPerPage(parseInt(e.target.value, 10));
-            setPage(0);
-          }}
-          labelRowsPerPage="Linhas por página"
-        />
+        <TablePagination rowsPerPageOptions={[5,10,25,50]} component="div" count={filteredUsers.length} rowsPerPage={rowsPerPage} page={page} onPageChange={(e, newPage) => setPage(newPage)} onRowsPerPageChange={(e) => { setRowsPerPage(parseInt(e.target.value,10)); setPage(0); }} labelRowsPerPage="Linhas por página" />
       </TableContainer>
 
-      {/* Diálogo de Criar/Editar Utilizador */}
       <Dialog open={openDialog} onClose={handleCloseDialog} maxWidth="md" fullWidth>
-        <DialogTitle>
-          {editingUser ? 'Editar Utilizador' : 'Novo Utilizador'}
-        </DialogTitle>
+        <DialogTitle>{editingUser ? 'Editar Utilizador' : 'Novo Utilizador'}</DialogTitle>
         <DialogContent>
           <Box sx={{ pt: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
-            <TextField
-              fullWidth
-              required
-              name="nome_completo"
-              label="Nome Completo"
-              value={formData.nome_completo}
-              onChange={handleChange}
-            />
-            
-            <TextField
-              fullWidth
-              required
-              name="email"
-              label="Email"
-              type="email"
-              value={formData.email}
-              onChange={handleChange}
-            />
-            
-            {!editingUser && (
-              <TextField
-                fullWidth
-                required
-                name="senha"
-                label="Senha"
-                type="password"
-                value={formData.senha}
-                onChange={handleChange}
-                helperText="Mínimo 6 caracteres"
-              />
-            )}
-            
-            <FormControl fullWidth required>
-              <InputLabel>Perfil</InputLabel>
-              <Select
-                name="perfil_id"
-                value={formData.perfil_id}
-                label="Perfil"
-                onChange={handleChange}
-              >
-                {perfis.map(perfil => (
-                  <MenuItem key={perfil.id} value={perfil.id}>
-                    {perfil.nome} - {perfil.descricao}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-            
-            <FormControl fullWidth>
-              <InputLabel>Direção</InputLabel>
-              <Select
-                name="direcao_id"
-                value={formData.direcao_id}
-                label="Direção"
-                onChange={handleChange}
-              >
-                <MenuItem value="">Nenhuma</MenuItem>
-                {direcoes.map(direcao => (
-                  <MenuItem key={direcao.id} value={direcao.id}>
-                    {direcao.sigla} - {direcao.nome}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-            
-            <TextField
-              fullWidth
-              name="cargo"
-              label="Cargo"
-              value={formData.cargo}
-              onChange={handleChange}
-            />
-            
-            <TextField
-              fullWidth
-              name="telefone"
-              label="Telefone"
-              value={formData.telefone}
-              onChange={handleChange}
-            />
-            
-            {editingUser && (
-              <FormControlLabel
-                control={
-                  <Switch
-                    name="ativo"
-                    checked={formData.ativo}
-                    onChange={handleChange}
-                  />
-                }
-                label="Ativo"
-              />
-            )}
+            <TextField fullWidth required name="nome_completo" label="Nome Completo" value={formData.nome_completo} onChange={handleChange} />
+            <TextField fullWidth required name="email" label="Email" type="email" value={formData.email} onChange={handleChange} />
+            {!editingUser && <TextField fullWidth required name="senha" label="Senha" type="password" value={formData.senha} onChange={handleChange} helperText="Mínimo 6 caracteres" />}
+            <FormControl fullWidth required><InputLabel>Perfil</InputLabel><Select name="perfil_id" value={formData.perfil_id} label="Perfil" onChange={handleChange}>{perfis.map(p => (<MenuItem key={p.id} value={p.id}>{p.nome} - {p.descricao}</MenuItem>))}</Select></FormControl>
+            <FormControl fullWidth><InputLabel>Direção</InputLabel><Select name="direcao_id" value={formData.direcao_id} label="Direção" onChange={handleChange}><MenuItem value="">Nenhuma</MenuItem>{direcoes.map(d => (<MenuItem key={d.id} value={d.id}>{d.sigla} - {d.nome}</MenuItem>))}</Select></FormControl>
+            <TextField fullWidth name="cargo" label="Cargo" value={formData.cargo} onChange={handleChange} />
+            <TextField fullWidth name="telefone" label="Telefone" value={formData.telefone} onChange={handleChange} />
+            {editingUser && <FormControlLabel control={<Switch name="ativo" checked={formData.ativo} onChange={handleChange} />} label="Ativo" />}
           </Box>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={handleCloseDialog}>Cancelar</Button>
-          <Button
-            onClick={handleSubmit}
-            variant="contained"
-            disabled={submitting}
-          >
-            {submitting ? <CircularProgress size={24} /> : 'Salvar'}
-          </Button>
-        </DialogActions>
+        <DialogActions><Button onClick={handleCloseDialog}>Cancelar</Button><Button onClick={handleSubmit} variant="contained" disabled={submitting}>{submitting ? <CircularProgress size={24} /> : 'Salvar'}</Button></DialogActions>
       </Dialog>
     </Layout>
   );
