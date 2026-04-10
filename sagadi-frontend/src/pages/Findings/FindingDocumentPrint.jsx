@@ -1,165 +1,324 @@
-import React, { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
-import { FindingsService } from '../../services/findings';
-import { CircularProgress, Alert, Box, Typography } from '@mui/material';
+import React, { useEffect, useState } from "react";
+import { useParams } from "react-router-dom";
+import { FindingsService } from "../../services/findings";
+import { CircularProgress, Alert, Box, Button } from "@mui/material";
+import html2pdf from "html2pdf.js";
 
 export const FindingDocumentPrint = () => {
   const { id } = useParams();
+  const [finding, setFinding] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [finding, setFinding] = useState(null);
 
   useEffect(() => {
-    carregarFinding();
+    load();
   }, [id]);
 
-  const carregarFinding = async () => {
+  const load = async () => {
     try {
-      setLoading(true);
       const data = await FindingsService.buscarPorId(id);
       setFinding(data);
-    } catch (error) {
-      console.error('Erro ao carregar finding:', error);
-      setError('Erro ao carregar detalhes do finding');
+    } catch {
+      setError("Erro ao carregar");
     } finally {
       setLoading(false);
     }
   };
 
-  if (loading) {
-    return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
-        <CircularProgress />
-      </Box>
-    );
-  }
+  const handleExportPDF = () => {
+    const element = document.getElementById("print-area");
 
-  if (error || !finding) {
-    return (
-      <Box sx={{ p: 3 }}>
-        <Alert severity="error">{error || 'Finding não encontrado'}</Alert>
-      </Box>
-    );
-  }
+    html2pdf()
+      .set({
+        margin: 10,
+        filename: `finding_${finding?.numero_processo || "document"}.pdf`,
+        image: { type: "jpeg", quality: 1 },
+        html2canvas: { scale: 2 },
+        jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
+      })
+      .from(element)
+      .save();
+  };
+
+  if (loading) return <CircularProgress />;
+  if (error || !finding) return <Alert severity="error">{error}</Alert>;
+
+  const fill = (v) => v || "[Text]";
 
   const acoes = [...(finding.acoes_corretivas || [])];
-  while (acoes.length < 4) acoes.push({ acao: '', office_action: '', evidence_ref: '', start_date: '', due_date: '', progress: '' });
-  const progressos = [...(finding.progress_documented || [])];
-  while (progressos.length < 4) progressos.push({ descricao: '', review_date: '' });
+  while (acoes.length < 4) acoes.push({});
 
-  const headerStyle = { backgroundColor: '#D9E1F2', borderBottom: '1px solid #000000', padding: '8px', textAlign: 'left', fontSize: '14pt', fontWeight: 'bold', color: '#1F4E79' };
-  const cellStyle = { border: '1px solid #000000', padding: '8px', verticalAlign: 'top' };
+  const progressos = [...(finding.progress_documented || [])];
+  while (progressos.length < 4) progressos.push({});
+
+  const cell = {
+    border: "1px solid black",
+    padding: "4px",
+    fontSize: "11pt",
+    fontFamily: "Calibri, Arial, sans-serif",
+    verticalAlign: "top",
+    lineHeight: "1.3",
+  };
+
+  const header = {
+    ...cell,
+    backgroundColor: "#B7DEE8",
+    textAlign: "center",
+    fontWeight: "bold",
+  };
+
+  const inputRow = (h = 50) => ({ ...cell, height: h });
 
   return (
-    <Box sx={{ p: 4, maxWidth: '210mm', mx: 'auto', bgcolor: 'white', fontFamily: 'Arial, sans-serif' }}>
-      {/* Título central */}
-      <Typography variant="h4" align="center" sx={{ fontWeight: 'bold', mb: 3, color: '#1F4E79', fontSize: '18pt' }}>
-        RECORD OF AERODROME INSPECTION FINDINGS
-      </Typography>
+    <Box sx={{ width: "210mm", margin: "auto", bgcolor: "#fff", p: 1 }}>
+      <Button variant="contained" onClick={handleExportPDF} sx={{ mb: 2 }}>
+        Export as PDF
+      </Button>
 
-      {/* PARTE 1 */}
-      <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '20px', border: '1px solid #000000' }}>
-        <thead>
-          <tr><th colSpan="2" style={headerStyle}>PARTE 1 : To be completed by the Aerodrome inspector</th></tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td style={cellStyle}><strong>Aerodrome:</strong><br />{finding.aerodromo?.codigo_oaci} - {finding.aerodromo?.nome}</td>
-            <td style={cellStyle}><strong>Finding Number:</strong><br />{finding.numero_processo}</td>
-          </tr>
-          <tr>
-            <td style={cellStyle}><strong>Area of inspection:</strong><br />{finding.area_inspecao?.codigo} - {finding.area_inspecao?.nome}</td>
-            <td style={cellStyle}><strong>Date:</strong><br />{new Date(finding.data_inspecao).toLocaleDateString()}</td>
-          </tr>
-          <tr>
-            <td style={cellStyle}><strong>Name of the Inspector:</strong><br />{finding.inspetor?.nome_completo}</td>
-            <td style={cellStyle}><strong>Finding Level:</strong><br />{finding.finding_level}</td>
-          </tr>
-          <tr>
-            <td colSpan="2" style={cellStyle}><strong>REFERENCE DOCUMENT</strong><br />{finding.reference_document || ''}</td>
-          </tr>
-          <tr>
-            <td colSpan="2" style={cellStyle}><strong>FINDING</strong><br />{finding.finding_descricao || ''}</td>
-          </tr>
-        </tbody>
-      </table>
+      <div id="print-area">
+        <table
+          style={{
+            width: "100%",
+            borderCollapse: "collapse",
+            border: "2px solid black",
+          }}
+        >
+          <tbody>
+            {/* TITLE */}
+            <tr>
+              <td colSpan="7" style={header}>
+                RECORD OF AERODROME INSPECTION FINDINGS
+              </td>
+            </tr>
 
-      {/* PARTE 2 */}
-      <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '20px', border: '1px solid #000000' }}>
-        <thead><tr><th style={headerStyle}>PARTE 2 : To be completed by the Aerodrome Operator</th></tr></thead>
-        <tbody>
-          <tr><td style={cellStyle}><strong>OBSERVATIONS and REMARKS -- Aerodrome Operator</strong><br />{finding.observacoes_operador || ''}</td></tr>
-          <tr><td style={cellStyle}><strong>ROOT CAUSE (S)</strong><br />{finding.root_causes || ''}</td></tr>
-          <tr><td style={cellStyle}><strong>PROPOSED CORRECTIVE ACTION(S)</strong><br /><span style={{ fontSize: '10pt', fontStyle: 'italic' }}>(To explain the short term and long term measures that will be taken to eliminate the deficiency and its reoccurrence).</span></td></tr>
-          <tr>
-            <td style={cellStyle}>
-              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                <thead>
-                  <tr style={{ backgroundColor: '#F2F2F2' }}>
-                    <th style={{ border: '1px solid #000', padding: '6px' }}>PROPOSED CORRECTIVE ACTION(S)</th>
-                    <th style={{ border: '1px solid #000', padding: '6px' }}>OFFICE ACTION</th>
-                    <th style={{ border: '1px solid #000', padding: '6px' }}>EVIDENCE REFERENCE</th>
-                    <th style={{ border: '1px solid #000', padding: '6px' }}>STARTING DATE</th>
-                    <th style={{ border: '1px solid #000', padding: '6px' }}>DUE DATE(S)</th>
-                    <th style={{ border: '1px solid #000', padding: '6px' }}>PROGRESS (%)</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {acoes.map((acao, idx) => (
-                    <tr key={idx}>
-                      <td style={{ border: '1px solid #000', padding: '6px' }}>{acao.acao}</td>
-                      <td style={{ border: '1px solid #000', padding: '6px' }}>{acao.office_action}</td>
-                      <td style={{ border: '1px solid #000', padding: '6px' }}>{acao.evidence_ref}</td>
-                      <td style={{ border: '1px solid #000', padding: '6px' }}>{acao.start_date ? new Date(acao.start_date).toLocaleDateString() : ''}</td>
-                      <td style={{ border: '1px solid #000', padding: '6px' }}>{acao.due_date ? new Date(acao.due_date).toLocaleDateString() : ''}</td>
-                      <td style={{ border: '1px solid #000', padding: '6px' }}>{acao.progress}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </td>
-          </tr>
-        </tbody>
-      </table>
+            {/* PART 1 (UNCHANGED STRUCTURE) */}
+            <tr>
+              <td colSpan="7" style={header}>
+                PART 1 : To be completed by the Aerodrome inspector
+              </td>
+            </tr>
 
-      {/* PARTE 3 */}
-      <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '20px', border: '1px solid #000000' }}>
-        <thead><tr><th style={headerStyle}>PARTE 3 : To be completed by the IACM</th></tr></thead>
-        <tbody>
-          <tr><td style={cellStyle}><strong>FOLLOW-UP ON CORRECTIVE ACTIONS</strong></td></tr>
-          <tr><td style={cellStyle}><strong>COMMENTS ON THE CAP</strong><br />{finding.comments_cap || ''}</td></tr>
-          <tr><td style={cellStyle}><strong>PROGRESS DOCUMENTED</strong>
-            <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '6px' }}>
-              <thead><tr><th style={{ border: '1px solid #000', padding: '6px', width: '70%' }}>PROGRESS DOCUMENTED</th><th style={{ border: '1px solid #000', padding: '6px', width: '30%' }}>REVIEW DATE</th></tr></thead>
-              <tbody>
-                {progressos.map((prog, idx) => (
-                  <tr key={idx}><td style={{ border: '1px solid #000', padding: '6px' }}>{prog.descricao}</td><td style={{ border: '1px solid #000', padding: '6px' }}>{prog.review_date ? new Date(prog.review_date).toLocaleDateString() : ''}</td></tr>
-                ))}
-              </tbody>
-            </table>
-          </td></tr>
-          <tr>
-            <td style={cellStyle}>
-              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                <tbody>
-                  <tr>
-                    <td style={{ border: '1px solid #000', padding: '8px', width: '50%' }}><strong>EVALUATION OF CORRECTIVE ACTIONS PUT IN PLACE</strong><br />{finding.evaluation_actions || ''}</td>
-                    <td style={{ border: '1px solid #000', padding: '8px', width: '50%' }}><strong>DATE(S) OF APPLICATION OF CORRECTIVE ACTION(S)</strong><br />{finding.data_aplicacao_acoes ? new Date(finding.data_aplicacao_acoes).toLocaleDateString() : ''}</td>
-                  </tr>
-                </tbody>
-              </table>
-            </td>
-          </tr>
-          <tr><td style={cellStyle}><strong>This finding has been resolved satisfactorily:</strong><br />{finding.resolved_satisfactorily ? 'Yes' : 'No'}</td></tr>
-          <tr><td style={cellStyle}><strong>IACM Inspector's Name and Signature</strong><br />{finding.inspector_assinatura?.nome_completo || ''}{finding.data_assinatura && <span style={{ display: 'block', fontSize: '10pt' }}>({new Date(finding.data_assinatura).toLocaleString()})</span>}</td></tr>
-        </tbody>
-      </table>
+            <tr>
+              <td colSpan="4" style={cell}>
+                <b>Aerodrome:</b>
+                {finding.aerodromo?.nome || "[Text]"}
+              </td>
+              <td colSpan="3" style={cell}>
+                <b>Finding Number:</b>
+                {finding.numero_processo || "[Text]"}
+              </td>
+            </tr>
 
-      {/* Rodapé */}
-      <Box sx={{ mt: 4, textAlign: 'center' }}>
-        <Typography variant="caption" color="textSecondary">Documento gerado pelo SAGADI - Sistema de Análise, Gestão e Arquivo Digital de Inspeções</Typography>
-        <Typography variant="caption" color="textSecondary" display="block">IACM - Instituto de Aviação Civil de Moçambique</Typography>
-      </Box>
+            <tr>
+              <td colSpan="4" style={cell}>
+                <b>Area of inspection:</b>
+                {finding.area_inspecao?.nome || "[Text]"}
+              </td>
+              <td colSpan="3" style={cell}>
+                <b>Date:</b>
+                {finding.data_inspecao
+                  ? new Date(finding.data_inspecao).toLocaleDateString()
+                  : "[Text]"}
+              </td>
+            </tr>
+
+            <tr>
+              <td colSpan="4" style={cell}>
+                <b>Name of the Inspector:</b>
+                {finding.inspetor?.nome_completo || "[Text]"}
+              </td>
+              <td colSpan="3" style={cell}>
+                <b>Finding Level:</b>
+                {finding.finding_level || "[Text]"}
+              </td>
+            </tr>
+            {/* PART 2 */}
+            <tr>
+              <td colSpan="7" style={header}>
+                PART 2 : To be completed by the Aerodrome Operator
+              </td>
+            </tr>
+
+            <tr>
+              <td colSpan="7" style={header}>
+                OBSERVATIONS and REMARKS -- Aerodrome Operator
+              </td>
+            </tr>
+            <tr>
+              <td colSpan="7" style={inputRow(30)}>
+                {fill(finding.observacoes_operador)}
+              </td>
+            </tr>
+
+            <tr>
+              <td colSpan="7" style={header}>
+                ROOT CAUSE (S)
+              </td>
+            </tr>
+            <tr>
+              <td colSpan="7" style={inputRow(30)}>
+                {fill(finding.root_causes)}
+              </td>
+            </tr>
+
+            {/* PROPOSED ACTIONS */}
+            <tr>
+              <td colSpan="7" style={header}>
+                PROPOSED CORRECTIVE ACTION(S)
+              </td>
+            </tr>
+
+            <tr>
+              <td style={{ ...header, borderRight: "none" }}></td>
+
+              <td style={{ ...header, borderLeft: "none" }}>
+                PROPOSED CORRECTIVE ACTION(S)
+              </td>
+
+              <td style={header}>OFFICE ACTION</td>
+              <td style={header}>EVIDENCE REFERENCE</td>
+              <td style={header}>STARTING DATE</td>
+              <td style={header}>DUE DATE(S)</td>
+              <td style={header}>PROGRESS (%)</td>
+            </tr>
+
+            {acoes.map((a, i) => (
+  <tr key={i}>
+    
+    {/* NUMBER COLUMN (normal border) */}
+    <td
+      style={{
+        ...cell,
+        textAlign: 'center',
+        verticalAlign: 'top',
+        width: '30px'
+      }}
+    >
+      {i + 1}.
+    </td>
+
+    {/* ACTION COLUMN (normal border) */}
+    <td style={{ ...cell, verticalAlign: 'top' }}>
+      {a.acao || ''}
+    </td>
+
+    <td style={cell}>{a.office_action || ''}</td>
+
+    <td style={cell}>{a.evidence_ref || ''}</td>
+
+    <td style={cell}>
+      {a.start_date
+        ? new Date(a.start_date).toLocaleDateString()
+        : ''}
+    </td>
+
+    <td style={cell}>
+      {a.due_date
+        ? new Date(a.due_date).toLocaleDateString()
+        : ''}
+    </td>
+
+    <td style={{ ...cell, textAlign: 'center' }}>
+      {a.progress || ''}
+    </td>
+
+  </tr>
+))}
+
+            {/* PART 3 */}
+            <tr>
+              <td colSpan="7" style={header}>
+                PART 3 : To be completed by the IACM
+              </td>
+            </tr>
+
+            <tr>
+              <td colSpan="7" style={header}>
+                COMMENTS ON THE CAP
+              </td>
+            </tr>
+            <tr>
+              <td colSpan="7" style={inputRow(30)}>
+                {fill(finding.comments_cap)}
+              </td>
+            </tr>
+
+            {/* PROGRESS */}
+            <tr>
+              <td colSpan="5" style={header}>
+                PROGRESS DOCUMENTED
+              </td>
+              <td colSpan="2" style={header}>
+                REVIEW DATE
+              </td>
+            </tr>
+
+            {progressos.map((p, i) => (
+              <tr key={i}>
+                <td style={{ ...cell, textAlign: "center" }}>{i + 1}.</td>
+                <td colSpan="4" style={cell}>
+                  {p.descricao || ""}
+                </td>
+                <td colSpan="3" style={cell}>
+                  {p.review_date
+                    ? new Date(p.review_date).toLocaleDateString()
+                    : ""}
+                </td>
+              </tr>
+            ))}
+
+            {/* EVALUATION FIXED */}
+            <tr>
+              <td colSpan="5" style={header}>
+                EVALUATION OF CORRECTIVE ACTIONS PUT IN PLACE
+              </td>
+              <td colSpan="2" style={header}>
+                DATE(S) OF APPLICATION OF CORRECTIVE ACTION(S)
+              </td>
+            </tr>
+            <tr>
+              <td colSpan="5" style={inputRow(30)}>
+                {fill(finding.evaluation_actions)}
+              </td>
+              <td colSpan="2" style={inputRow(30)}>
+                {finding.data_aplicacao_acoes
+                  ? new Date(finding.data_aplicacao_acoes).toLocaleDateString()
+                  : "[Text]"}
+              </td>
+            </tr>
+
+            {/* RESOLUTION */}
+            <tr>
+              <td colSpan="7" style={cell}>
+                This finding has been resolved satisfactorily:
+                <span style={{ marginLeft: "20px" }}>Yes ☐ No ☐</span>
+              </td>
+            </tr>
+
+            {/* SIGNATURE */}
+            <tr>
+              <td
+                colSpan="7"
+                style={{ ...cell, textAlign: "center", paddingTop: "30px" }}
+              >
+                ___________________________________________
+                <br />
+                IACM Inspector's Name and Signature
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <style>
+        {`
+          @page { size: A4; margin: 1cm; }
+          body {
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+          }
+        `}
+      </style>
     </Box>
   );
 };
